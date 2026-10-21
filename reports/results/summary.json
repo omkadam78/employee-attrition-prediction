@@ -1,0 +1,14 @@
+{
+  "selected_model": "Logistic Regression",
+  "selection_criterion": "highest held-out ROC-AUC after cross-validated tuning",
+  "test_metrics": {
+    "Accuracy": 0.7721088435374149,
+    "Precision": 0.38095238095238093,
+    "Recall": 0.6808510638297872,
+    "F1": 0.48854961832061067,
+    "ROC-AUC": 0.8123869411663364
+  },
+  "rows": 1470,
+  "attrition_rate": 0.16122448979591836,
+  "random_seed": 42
+}
