@@ -10,5 +10,6 @@
 | Saved model | `models/attrition_model.joblib` | Complete | Verified locally | Review before submission |
 | Notebook | `notebooks/attrition_prediction.ipynb` | Complete | Verified locally | Review before submission |
 | Reports | `reports/*.docx` | Complete | Verified locally | Review before submission |
+| Optional business regression | `reports/results/regression_metrics.csv` and `visualizations/regression_model_comparison.png` | Complete | Generated from bundled dataset | Review limitations before submission |
 
-The GitHub repository still needs to be created and pushed by the student. IBM Cloud deployment remains pending where applicable.
+Repository URL: https://github.com/omkadam78/employee-attrition-prediction

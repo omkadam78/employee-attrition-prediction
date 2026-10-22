@@ -2,7 +2,7 @@
 
 Subject: 24UADPC401 Data Science Advanced Programming IBM
 
-This project predicts employee attrition using Logistic Regression, Decision Tree, Random Forest, and XGBoost. It uses leakage-safe preprocessing, five-fold stratified cross-validation, hyperparameter tuning, held-out evaluation, feature interpretation, and a saved inference pipeline.
+This project predicts employee attrition using Logistic Regression, Decision Tree, Random Forest, and XGBoost. It uses leakage-safe preprocessing, five-fold stratified cross-validation, hyperparameter tuning, held-out evaluation, feature interpretation, and a saved inference pipeline. It also completes the optional business task by comparing four regressors for the 1-4 `JobSatisfaction` score.
 
 ## Verified result
 
@@ -14,16 +14,18 @@ Logistic Regression was selected by held-out ROC-AUC.
 
 These results come from the included IBM teaching dataset and are not production-performance claims.
 
+The optional regression results are saved in `reports/results/regression_metrics.csv`. Random Forest Regressor had the lowest held-out MAE (0.970), with RMSE 1.139 and R2 -0.027. This negative R2 means the available fields do not provide reliable individual satisfaction predictions.
+
 ## Repository contents
 
 | Path | Purpose |
 |---|---|
 | `data/employee_attrition.csv` | Bundled public IBM sample dataset |
-| `src/train.py` | Preprocessing, training, tuning, evaluation, visualization, and model-saving workflow |
+| `src/train.py` | Classification plus optional JobSatisfaction regression, evaluation, visualization, and model-saving workflow |
 | `notebooks/attrition_prediction.ipynb` | Executed assignment notebook |
 | `models/attrition_model.joblib` | Saved preprocessing and Logistic Regression pipeline |
 | `reports/` | Evaluation report, business interpretation report, and result tables |
-| `visualizations/` | ROC curves, confusion matrix, and feature-importance chart |
+| `visualizations/` | ROC curves, confusion matrix, feature importance, and regression comparison |
 | `tests/` | Lightweight repository checks |
 | `docs/SUBMISSION_CHECKLIST.md` | Requirement-to-evidence mapping |
 
@@ -46,7 +48,7 @@ On macOS or Linux, activate with `source .venv/bin/activate`.
 python src/train.py
 ```
 
-The script reads `data/employee_attrition.csv` using a repository-relative path and refreshes the results, figures, and saved model.
+The script reads `data/employee_attrition.csv` using a repository-relative path and refreshes the classification results, optional regression results, figures, and saved model.
 
 ## Run the notebook
 

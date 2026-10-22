@@ -4,22 +4,26 @@ import json
 from pathlib import Path
 
 import joblib
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
 from sklearn.metrics import (accuracy_score, confusion_matrix, f1_score,
-                             precision_score, recall_score, roc_auc_score,
-                             roc_curve)
-from sklearn.model_selection import GridSearchCV, StratifiedKFold, cross_validate, train_test_split
+                             mean_absolute_error, mean_squared_error,
+                             precision_score, r2_score, recall_score,
+                             roc_auc_score, roc_curve)
+from sklearn.model_selection import (GridSearchCV, KFold, StratifiedKFold,
+                                     cross_validate, train_test_split)
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.tree import DecisionTreeClassifier
-from xgboost import XGBClassifier
+from xgboost import XGBClassifier, XGBRegressor
 
 SEED = 42
 ROOT = Path(__file__).resolve().parents[1]
@@ -64,8 +68,74 @@ def evaluate(model: Pipeline, x: pd.DataFrame, y: pd.Series) -> dict[str, float]
     }
 
 
+def run_optional_regression(frame: pd.DataFrame) -> dict[str, object]:
+    """Run the optional business task: predict JobSatisfaction on its 1-4 scale."""
+    drop = ["JobSatisfaction", "Attrition", "EmployeeCount", "EmployeeNumber", "StandardHours", "Over18"]
+    x = frame.drop(columns=drop)
+    y = frame["JobSatisfaction"].astype(float)
+    x_train, x_test, y_train, y_test = train_test_split(
+        x, y, test_size=0.2, random_state=SEED
+    )
+    regressors = {
+        "Linear Regression": Pipeline([("pre", make_preprocessor(x, True)), ("model", LinearRegression())]),
+        "Ridge Regression": Pipeline([("pre", make_preprocessor(x, True)), ("model", Ridge(alpha=10.0))]),
+        "Random Forest Regressor": Pipeline([("pre", make_preprocessor(x, False)), ("model", RandomForestRegressor(n_estimators=250, min_samples_leaf=5, random_state=SEED, n_jobs=-1))]),
+        "XGBoost Regressor": Pipeline([("pre", make_preprocessor(x, False)), ("model", XGBRegressor(n_estimators=250, learning_rate=0.05, max_depth=3, objective="reg:squarederror", random_state=SEED, n_jobs=-1))]),
+    }
+    cv = KFold(n_splits=5, shuffle=True, random_state=SEED)
+    test_rows: dict[str, dict[str, float]] = {}
+    cv_rows: dict[str, dict[str, float]] = {}
+    for name, model in regressors.items():
+        scores = cross_validate(
+            model,
+            x_train,
+            y_train,
+            cv=cv,
+            scoring={"MAE": "neg_mean_absolute_error", "R2": "r2"},
+            n_jobs=-1,
+        )
+        model.fit(x_train, y_train)
+        prediction = model.predict(x_test)
+        test_rows[name] = {
+            "MAE": float(mean_absolute_error(y_test, prediction)),
+            "RMSE": float(mean_squared_error(y_test, prediction) ** 0.5),
+            "R2": float(r2_score(y_test, prediction)),
+        }
+        cv_rows[name] = {
+            "Mean_CV_MAE": float(-scores["test_MAE"].mean()),
+            "Mean_CV_R2": float(scores["test_R2"].mean()),
+        }
+
+    test_table = pd.DataFrame(test_rows).T.sort_values("MAE")
+    cv_table = pd.DataFrame(cv_rows).T.loc[test_table.index]
+    test_table.to_csv(OUT / "regression_metrics.csv")
+    cv_table.to_csv(OUT / "regression_cross_validation.csv")
+    best_name = str(test_table.index[0])
+    result: dict[str, object] = {
+        "target": "JobSatisfaction",
+        "target_scale": "1-4",
+        "selected_model": best_name,
+        "selection_criterion": "lowest held-out MAE",
+        "test_metrics": test_table.loc[best_name].to_dict(),
+        "interpretation": "Negative or near-zero R2 means the available fields do not reliably predict individual satisfaction scores.",
+    }
+    (OUT / "regression_summary.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
+
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4.2))
+    test_table["MAE"].sort_values().plot.barh(ax=axes[0], color="#356A8A")
+    axes[0].set(title="Job satisfaction regression MAE", xlabel="MAE", ylabel="")
+    test_table["R2"].sort_values().plot.barh(ax=axes[1], color="#8C5A3C")
+    axes[1].axvline(0, color="#555555", linewidth=1)
+    axes[1].set(title="Job satisfaction regression R2", xlabel="R2", ylabel="")
+    fig.tight_layout()
+    fig.savefig(VIS / "regression_model_comparison.png", dpi=180)
+    plt.close(fig)
+    return result
+
+
 def main() -> None:
     sns.set_theme(style="whitegrid")
+    full_frame = pd.read_csv(DATA)
     x, y = load_data()
     x_train, x_test, y_train, y_test = train_test_split(
         x, y, test_size=0.2, stratify=y, random_state=SEED
@@ -140,7 +210,8 @@ def main() -> None:
     sns.barplot(data=importance.head(12), x="importance", y="feature", color="#356A8A", ax=ax)
     ax.set(title=f"Leading features in {best_name}", xlabel="Absolute model importance", ylabel="")
     fig.tight_layout(); fig.savefig(VIS / "feature_importance.png", dpi=180); plt.close(fig)
-    print(json.dumps(metadata, indent=2))
+    regression = run_optional_regression(full_frame)
+    print(json.dumps({"classification": metadata, "optional_regression": regression}, indent=2))
 
 
 if __name__ == "__main__":

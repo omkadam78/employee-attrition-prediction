@@ -8,7 +8,7 @@
   },
   "Random Forest": {
     "model__max_depth": null,
-    "model__min_samples_leaf": 3
+    "model__min_samples_leaf": 1
   },
   "XGBoost": {
     "model__learning_rate": 0.03,

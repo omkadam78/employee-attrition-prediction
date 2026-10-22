@@ -1,0 +1,12 @@
+{
+  "target": "JobSatisfaction",
+  "target_scale": "1-4",
+  "selected_model": "Random Forest Regressor",
+  "selection_criterion": "lowest held-out MAE",
+  "test_metrics": {
+    "MAE": 0.970146449571024,
+    "RMSE": 1.1392013058184978,
+    "R2": -0.02660320329442234
+  },
+  "interpretation": "Negative or near-zero R2 means the available fields do not reliably predict individual satisfaction scores."
+}
